@@ -16,11 +16,11 @@ A secure file-sharing application that enables users to upload and share files w
 - Activity tracking
 
 ## Built With 💻
-- [Next.js]([url](https://nextjs.org/)) v15.1.3
-- [TypeScript]([url](https://www.typescriptlang.org/))
-- [Supabase](supabase.com)
-- [Tailwind CSS]([url](https://tailwindcss.com/))
-- [Web Crypto API]([url](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API))
+- [Next.js](https://nextjs.org/) v15.1.3
+- [TypeScript](https://www.typescriptlang.org/)
+- [Supabase](https://www.supabase.com)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
 - AES-GCM Encryption
 
 ## Diagram
