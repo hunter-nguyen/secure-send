@@ -1,29 +1,41 @@
 "use client";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
-import { Auth, Typography, Button } from '@supabase/ui'
-import { createClient } from '@supabase/supabase-js'
-import { supabase } from "@/lib/supabase"
+export default function Login() {
+  const router = useRouter();
 
-const Container = (props) => {
-  const { user } = Auth.useUser()
-  if (user)
-    return (
-      <>
-        <Typography.Text>Signed in: {user.email}</Typography.Text>
-        <Button block onClick={() => props.supabaseClient.auth.signOut()}>
-          Sign out
-        </Button>
-      </>
-    )
-  return props.children
-}
+  useEffect(() => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/dashboard');
+      }
+    });
 
-export default function AuthBasic() {
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  const signInWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      }
+    });
+  };
+
   return (
-    <Auth.UserContextProvider supabaseClient={supabase}>
-      <Container supabaseClient={supabase}>
-        <Auth onlyThirdPartyProviders={true} supabaseClient={supabase} providers={['google']} />
-      </Container>
-    </Auth.UserContextProvider>
-  )
+    <button
+      onClick={signInWithGoogle}
+      className="p-2 bg-blue-500 text-white rounded mx-auto"
+    >
+      Sign in with Google
+    </button>
+  );
 }
