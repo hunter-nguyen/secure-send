@@ -18,6 +18,7 @@ interface RecentActivity {
   timestamp: string;
 }
 
+
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -45,25 +46,62 @@ export default function Dashboard() {
     checkUser();
   }, [router]);
 
+  const refreshStorageStats = async () => {
+    console.log("refreshStorageStats called")
+    const { data : { user } } = await supabase.auth.getUser();
+    if (user) {
+      await fetchStorageStats(user.id)
+    }
+  }
+
   const fetchStorageStats = async (userId: string) => {
     try {
         // Get 24hr stats from database
+        console.log("Current user ID: ", userId)
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        // First, get ALL files without any filters to verify data exists
+        const { data: allFilesNoFilter, error: noFilterError } = await supabase
+            .from('files')
+            .select('*');
+
+        console.log("All files in table (no filter):", allFilesNoFilter);
+
         const { data: recentFiles, error: recentError } = await supabase
             .from('files')
-            .select('size')
+            .select('*')
             .eq('user_id', userId)
             .gte('created_at', twentyFourHoursAgo.toISOString());
+
+        console.log("Recent files (full data): ", recentFiles);
 
         if (recentError) throw recentError;
 
         // Get all-time stats from database
         const { data: allFiles, error: allError } = await supabase
             .from('files')
-            .select('size')
+            .select('*')
             .eq('user_id', userId);
 
+        console.log("All files: (full data) ", allFiles);
+
         if (allError) throw allError;
+
+        // Calculate with detailed logging
+        let totalUsage = 0;
+        allFiles?.forEach(file => {
+            console.log(`Adding file size: ${file.size} bytes from ${file.filename}`);
+            totalUsage += file.size;
+        });
+
+        let dailyUsage = 0;
+        recentFiles?.forEach(file => {
+            console.log(`Adding to daily usage: ${file.size} bytes from ${file.filename}`);
+            dailyUsage += file.size;
+        });
+
+        console.log(`Final calculations - Total: ${totalUsage}, Daily: ${dailyUsage}`);
+
 
         // Verify against storage bucket
         const { data: storageFiles, error: storageError } = await supabase
@@ -73,8 +111,8 @@ export default function Dashboard() {
 
         if (storageError) throw storageError;
 
-        const dailyUsage = recentFiles?.reduce((acc, file) => acc + (file.size || 0), 0) || 0;
-        const totalUsage = allFiles?.reduce((acc, file) => acc + (file.size || 0), 0) || 0;
+        // const dailyUsage = recentFiles?.reduce((acc, file) => acc + (file.size || 0), 0) || 0;
+        // const totalUsage = allFiles?.reduce((acc, file) => acc + (file.size || 0), 0) || 0;
 
         setStorageStats({
             used: totalUsage,
@@ -82,6 +120,7 @@ export default function Dashboard() {
             total: 5000000000,    // 5GB total
             dailyLimit: 500000000 // 500MB daily
         });
+      console.log("Calculated usage: ", { dailyUsage, totalUsage } );
     } catch (error) {
         console.error('Error fetching storage stats:', error);
     }
@@ -152,6 +191,12 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600">
                 {formatBytes(storageStats.used)} of {formatBytes(storageStats.total)} used
               </p>
+
+              <div className="mt-4 text-sm text-gray-600">
+            <p>Daily upload limit: {storageStats.dailyLimit / 10000000} MB</p>
+            <p>Used today: {formatBytes(storageStats.daily)}</p>
+            <p className="text-xs mt-2">Daily limit resets every 24 hours</p>
+            </div>
             </div>
           </div>
 
@@ -187,7 +232,7 @@ export default function Dashboard() {
         {/* File Upload Section */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4 text-black">Upload Files</h2>
-          <FileUploadSection/>
+          <FileUploadSection onUploadComplete={refreshStorageStats}/>
         </div>
       </main>
     </div>

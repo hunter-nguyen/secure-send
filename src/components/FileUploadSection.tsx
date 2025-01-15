@@ -5,9 +5,18 @@ import FileUploader from "@/components/FileUploader"
 import FilePreview from "@/components/FilePreview"
 import { supabase } from "@/lib/supabase"
 import { encryptFile, generateAESKey } from "@/app/utils/encryption"
-import { generateSecureFileName } from "@/app/utils"
+import { generateSecureFileName, validateFileType, validateFileSize } from "@/app/utils/validation"
 
-export default function FileUploadSection() {
+interface FileUploadSectionProps {
+    onUploadComplete?: () => Promise<void>;
+}
+
+export default function FileUploadSection({
+    onUploadComplete
+}:
+    {
+        onUploadComplete?: () => Promise<void>;
+    }) {
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -43,7 +52,15 @@ export default function FileUploadSection() {
             // console.log("Attempting to upload to the console filename", secureFileName);
 
 
-            // TODO call validate functions from validation.ts
+            // Call validation functions
+            if (!validateFileType(file)) {
+                throw new Error('File type not supported. Please upload PDF, PNG, JPEG, DOC, or TXT files only.');
+            }
+
+            if (!validateFileSize(file)) {
+                throw new Error('File size exceeds 10MB limit.');
+            }
+
             // console.log("Starting storage upload...");
             const { data, error } = await supabase.storage
             .from('uploads')
@@ -70,10 +87,21 @@ export default function FileUploadSection() {
                 }
             ]);
 
+            console.log("File insert attempt:", {
+                filename: secureFileName,
+                user_id: user.id,
+                size: file.size,
+                error: dbError
+            });
+
             // console.log("Database insert result:", { dbError} );
             if (dbError) throw dbError;
 
             setUploadStatus('success');
+            if (onUploadComplete) {
+                console.log("Calling onUploadComplete")
+                await onUploadComplete();
+            }
         } catch(error: any) {
             console.error("full error", error);
             setErrorMessage(error.message);
