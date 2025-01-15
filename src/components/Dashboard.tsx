@@ -6,7 +6,9 @@ import FileUploadSection from '@/components/FileUploadSection';
 
 interface StorageStats {
   used: number;
+  daily: number;
   total: number;
+  dailyLimit: number;
 }
 
 interface RecentActivity {
@@ -19,7 +21,12 @@ interface RecentActivity {
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [storageStats, setStorageStats] = useState<StorageStats>({ used: 0, total: 5000000000 }); // 5GB default
+  const [storageStats, setStorageStats] = useState<StorageStats>({
+    used: 0,
+    daily: 0,
+    total: 5000000000, // 5 GB
+    dailyLimit: 500000000 // 500 MB
+  }); // 5GB default
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 
   useEffect(() => {
@@ -40,28 +47,46 @@ export default function Dashboard() {
 
   const fetchStorageStats = async (userId: string) => {
     try {
-      // Get all files for the user from Supabase storage
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        // Get 24hr stats from database
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const { data: recentFiles, error: recentError } = await supabase
+            .from('files')
+            .select('size')
+            .eq('user_id', userId)
+            .gte('created_at', twentyFourHoursAgo.toISOString());
 
-      const { data: recentFiles, error: recentError } = await supabase
-        .from('files')
-        .select('size')
-        .gte('created_at', twentyFourHoursAgo.toISOString());
+        if (recentError) throw recentError;
 
-      const { data: files, error } = await supabase
-        .storage
-        .from('uploads')
-        .list(`${userId}/`); // Files in user's directory
+        // Get all-time stats from database
+        const { data: allFiles, error: allError } = await supabase
+            .from('files')
+            .select('size')
+            .eq('user_id', userId);
 
-      if (error) throw error;
+        if (allError) throw allError;
 
-      // Calculate total size
-      const used = files?.reduce((acc, file) => acc + (file.metadata?.size || 0), 0) || 0;
-      setStorageStats({ used, total: 5000000000 }); // 5GB limit
+        // Verify against storage bucket
+        const { data: storageFiles, error: storageError } = await supabase
+            .storage
+            .from('uploads')
+            .list(`${userId}/`);
+
+        if (storageError) throw storageError;
+
+        const dailyUsage = recentFiles?.reduce((acc, file) => acc + (file.size || 0), 0) || 0;
+        const totalUsage = allFiles?.reduce((acc, file) => acc + (file.size || 0), 0) || 0;
+
+        setStorageStats({
+            used: totalUsage,
+            daily: dailyUsage,
+            total: 5000000000,    // 5GB total
+            dailyLimit: 500000000 // 500MB daily
+        });
     } catch (error) {
-      console.error('Error fetching storage stats:', error);
+        console.error('Error fetching storage stats:', error);
     }
-  };
+};
+
 
   const fetchRecentActivity = async (userId: string) => {
     try {
@@ -116,7 +141,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* Storage Usage Card */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Storage Usage</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Storage Usage</h2>
             <div className="space-y-2">
               <div className="h-2 bg-gray-200 rounded">
                 <div
@@ -132,7 +157,7 @@ export default function Dashboard() {
 
           {/* Quick Actions Card */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</h2>
             <div className="space-y-2">
               <button className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                 New File Upload
@@ -145,7 +170,7 @@ export default function Dashboard() {
 
           {/* Recent Activity Card */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Recent Activity</h2>
             <div className="space-y-2">
               {recentActivity.map((activity) => (
                 <div key={activity.id} className="text-sm text-gray-600">
@@ -161,7 +186,7 @@ export default function Dashboard() {
 
         {/* File Upload Section */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Upload Files</h2>
+          <h2 className="text-lg font-semibold mb-4 text-black">Upload Files</h2>
           <FileUploadSection/>
         </div>
       </main>

@@ -3,14 +3,18 @@
 import Dropzone from 'react-dropzone'
 import { FaUpload } from 'react-icons/fa'
 
-export default function FileUploader({ onFileUpload }: { onFileUpload: (file: File) => void }) {
+interface FileUploaderProps {
+  onFileSelect: (file: File) => void;
+}
+
+export default function FileUploader({ onFileSelect }: FileUploaderProps) {
   return (
     <div className="flex justify-center items-center p-4 absolute inset-0 m-auto">
       <Dropzone onDrop={(files) => {
-        console.log('Files dropped', files);
-      onFileUpload(files[0])
-      }}
-      >
+        if (files.length > 0) {
+          onFileSelect(files[0])
+        }
+      }}>
         {({ getRootProps, getInputProps, isDragActive }) => (
           <div
             {...getRootProps()}

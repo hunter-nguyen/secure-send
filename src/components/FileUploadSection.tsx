@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import FileUploader from "./FileUploader"
+import FileUploader from "@/components/FileUploader"
+import FilePreview from "@/components/FilePreview"
 import { supabase } from "@/lib/supabase"
 import { encryptFile, generateAESKey } from "@/app/utils/encryption"
 import { generateSecureFileName } from "@/app/utils"
@@ -9,6 +10,24 @@ import { generateSecureFileName } from "@/app/utils"
 export default function FileUploadSection() {
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+
+    const handleFileSelect = (file: File) => {
+        setSelectedFile(file);
+    };
+
+    // Handle confirm in preview
+    const handleConfirmUpload = async () => {
+        if (!selectedFile) return;
+        await handleFileUpload(selectedFile);
+        setSelectedFile(null);
+    }
+
+    // handle when user cancels in preview
+    const handleCancelUpload = () => {
+        setSelectedFile(null);
+    }
 
     const handleFileUpload = async (file: File) => {
         setUploadStatus('uploading');
@@ -23,7 +42,7 @@ export default function FileUploadSection() {
             const secureFileName = generateSecureFileName(file.name);
             // console.log("Attempting to upload to the console filename", secureFileName);
 
-            
+
             // TODO call validate functions from validation.ts
             // console.log("Starting storage upload...");
             const { data, error } = await supabase.storage
@@ -46,7 +65,8 @@ export default function FileUploadSection() {
                 {
                     filename: secureFileName,
                     created_at: new Date(),
-                    user_id: user.id
+                    user_id: user.id,
+                    size: file.size
                 }
             ]);
 
@@ -64,7 +84,15 @@ export default function FileUploadSection() {
 
     return (
         <div>
-            <FileUploader onFileUpload={handleFileUpload}></FileUploader>
+            {!selectedFile ? (
+                <FileUploader onFileSelect={handleFileSelect}></FileUploader>
+            ) : (
+                <FilePreview
+                file={selectedFile}
+                onUpload={handleConfirmUpload}
+                onCancel={handleCancelUpload}
+            />
+            )}
             {uploadStatus === 'uploading' && <div>Uploading...</div>}
             {uploadStatus === 'success' && <div className="text-green-500">File uploaded successfully!</div>}
             {uploadStatus === 'error' && <div className="text-red-500">Error: {errorMessage}</div>}
