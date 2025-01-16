@@ -17,7 +17,7 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
   ].join(', ');
 
   return (
-    <div className="flex justify-center items-center p-4 absolute inset-0 m-auto">
+    <div className="flex justify-center items-center p-4 inset-0 m-auto">
       <Dropzone onDrop={(files) => {
         if (files.length > 0) {
           onFileSelect(files[0])
@@ -37,7 +37,7 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
               <p className="text-blue-500">Drop the files here...</p>
             ) : (
               <div>
-                <p className="text-gray-600">Drag and drop files here, or click to select files</p>
+                <p className="text-gray-600">Drag, drop, or click to select files</p>
                 <p className="text-sm text-gray-400 mt-2">Supported files: {supportedFileTypes}.
                   <br/>
                   Max file size: 10 MB</p>

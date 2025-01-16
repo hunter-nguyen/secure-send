@@ -97,6 +97,17 @@ export default function FileUploadSection({
             // console.log("Database insert result:", { dbError} );
             if (dbError) throw dbError;
 
+            const { error: activityError } = await supabase
+                .from('file_activities')
+                .insert([{
+                    user_id: user.id,
+                    type: 'upload',
+                    filename: file.name,
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (activityError) throw activityError;
+
             setUploadStatus('success');
             if (onUploadComplete) {
                 console.log("Calling onUploadComplete")

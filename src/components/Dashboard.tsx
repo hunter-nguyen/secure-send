@@ -133,8 +133,10 @@ export default function Dashboard() {
       // get recent file activities from Supabase table
       const { data, error } = await supabase
         .from('file_activities')
-        .select('id, filename, created_at')
+        .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
+        .limit(5);
 
       if (error) throw error;
 
@@ -145,7 +147,7 @@ export default function Dashboard() {
         timestamp: file.created_at
       })) || [];
 
-      setRecentActivity(activities);
+      setRecentActivity(data || []);
     } catch (error) {
       console.error('Error fetching activities:', error);
     }
@@ -176,8 +178,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+
           {/* Storage Usage Card */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-lg font-semibold mb-4 text-black">Storage Usage</h2>
@@ -200,33 +203,31 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Actions Card */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</h2>
-            <div className="space-y-2">
-              <button className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                New File Upload
-              </button>
-              <button className="w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-                View Your Uploaded Files
-              </button>
-            </div>
-          </div>
-
-          {/* Recent Activity Card */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4 text-black">Recent Activity</h2>
-            <div className="space-y-2">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="text-sm text-gray-600">
-                  {activity.type === 'upload' && '⬆️'}
-                  {activity.type === 'download' && '⬇️'}
-                  {activity.type === 'share' && '🔗'}
-                  {' '}{activity.filename}
+      {/* Recent Activity Card */}
+      <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold text-black mb-4">Recent Activity</h2>
+          <div className="space-y-2">
+              {recentActivity.length === 0 ? (
+                  <p className="text-gray-500">No recent activity</p>
+              ) : (
+                  recentActivity.map((activity) => (
+                      <div key={activity.id} className="flex items-center space-x-2 text-sm text-gray-600">
+                          <span className="flex-shrink-0">
+                              {activity.type === 'upload' && '⬆️'}
+                              {activity.type === 'download' && '⬇️'}
+                              {activity.type === 'share' && '🔗'}
+                          </span>
+                          <span className="flex-1 truncate">
+                              {activity.filename}
+                          </span>
+                          <span className="flex-shrink-0 text-xs text-gray-400">
+                              {new Date(activity.created_at).toLocaleString()}
+                          </span>
+                      </div>
+                  ))
+                        )}
+                    </div>
                 </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* File Upload Section */}
