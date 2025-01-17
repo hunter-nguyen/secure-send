@@ -161,6 +161,11 @@ export default function Dashboard() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/login');
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -169,7 +174,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Secure Send Dashboard</h1>
             <button
-              onClick={() => supabase.auth.signOut()}
+              onClick={handleSignOut}
               className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             >
               Sign Out
