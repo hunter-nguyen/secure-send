@@ -226,7 +226,7 @@ export default function Dashboard() {
                               {activity.filename}
                           </span>
                           <span className="flex-shrink-0 text-xs text-gray-400">
-                              {new Date(activity.created_at).toLocaleString()}
+                              {new Date(activity.timestamp).toLocaleString()}
                           </span>
                       </div>
                   ))

@@ -6,6 +6,7 @@ import FilePreview from "@/components/FilePreview"
 import { supabase } from "@/lib/supabase"
 import { encryptFile, generateAESKey } from "@/app/utils/encryption"
 import { generateSecureFileName, validateFileType, validateFileSize } from "@/app/utils/validation"
+import { ShareModal } from "@/components/ShareModal"
 
 interface FileUploadSectionProps {
     onUploadComplete?: () => Promise<void>;
@@ -20,6 +21,14 @@ export default function FileUploadSection({
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [fileId, setFileId] = useState<string | null>(null);
+
+    const handleModalClose = () => {
+        setShowModal(false);
+        setFileId(null);
+    };
 
 
     const handleFileSelect = (file: File) => {
@@ -76,7 +85,7 @@ export default function FileUploadSection({
 
             if (error) throw error;
 
-            const { error: dbError } = await supabase
+            const { data: fileData, error: dbError } = await supabase
             .from('files')
             .insert([
                 {
@@ -85,7 +94,12 @@ export default function FileUploadSection({
                     user_id: user.id,
                     size: file.size
                 }
-            ]);
+            ])
+            .select()
+            .single();
+
+            setFileId(fileData.id);
+            setShowModal(true);
 
             console.log("File insert attempt:", {
                 filename: secureFileName,
@@ -133,7 +147,16 @@ export default function FileUploadSection({
             />
             )}
             {uploadStatus === 'uploading' && <div>Uploading...</div>}
-            {uploadStatus === 'success' && <div className="text-green-500">File uploaded successfully!</div>}
+            {uploadStatus === 'success' && (
+                <>
+                <div className="text-green-500">File uploaded successfully!</div> &&
+                <ShareModal
+                    isOpen={true}
+                    onClose={handleModalClose}
+                    fileId={selectedFile?.name!}
+                />
+                </>
+            )}
             {uploadStatus === 'error' && <div className="text-red-500">Error: {errorMessage}</div>}
         </div>
     )
