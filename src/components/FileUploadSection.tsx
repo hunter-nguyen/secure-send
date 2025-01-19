@@ -21,7 +21,6 @@ export default function FileUploadSection({
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [fileId, setFileId] = useState<string | null>(null);
 
@@ -151,9 +150,9 @@ export default function FileUploadSection({
                 <>
                 <div className="text-green-500">File uploaded successfully!</div> &&
                 <ShareModal
-                    isOpen={true}
+                    isOpen={showModal}
                     onClose={handleModalClose}
-                    fileId={selectedFile?.name!}
+                    fileId={fileId!}
                 />
                 </>
             )}

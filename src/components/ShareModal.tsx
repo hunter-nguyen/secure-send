@@ -40,31 +40,36 @@ export const ShareModal: React.FC<ShareModalProps> = ({isOpen, onClose, fileId}:
             [setting]: value
         }))
         // Generate new URL when we change settings
-        generateShareUrl()
     }
 
     const generateShareUrl = async () => {
-        // Create share record in Supabase
-        console.log("Generating share URL")
-        const { data, error } = await supabase
-            .from('shares')
-            .insert([{
-                file_id: fileId,
-                expiration: calculateExpiration(shareSettings.expiration),
-                password_hash: shareSettings.password ? await hashPassword(shareSettings.password) : null,
-                usage_limit: shareSettings.usageLimit
-            }])
-            .select()
-            .single();
+        try {
+            // Get current user
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
 
-        if (error) {
-            console.error("Error inserting share record: ", error)
-            return;
+            const { data, error } = await supabase
+                .from('shares')
+                .insert([{
+                    file_id: fileId,
+                    created_by: user.id,  // Add creator
+                    expiration: calculateExpiration(shareSettings.expiration),
+                    password_hash: shareSettings.password ? await hashPassword(shareSettings.password) : null,
+                    usage_limit: shareSettings.usageLimit,
+                    usage_count: 0  // Initialize usage count
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                console.error("Error inserting share record: ", error);
+                return;
+            }
+
+            setShareUrl(`${window.location.origin}/share/${data.id}`);
+        } catch (error) {
+            console.error("Error generating share URL:", error);
         }
-
-        console.log("Share URL generated: ", `${window.location.origin}/share/${data.id}`)
-        // Set the share URL
-        setShareUrl(`${window.location.origin}/share/${data.id}`);
     };
 
             // Calculate when share link expires based on selection
@@ -127,6 +132,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({isOpen, onClose, fileId}:
                         </button>
                     </div>
 
+
                     {/* Share Settings */}
                     <div className="space-y-4">
                         {/* Expiration Setting */}
@@ -157,6 +163,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({isOpen, onClose, fileId}:
                                 placeholder="Optional password"
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm px-5 text-gray-800"
                             />
+                            <button
+
+                            onClick={generateShareUrl}
+                            className="mt-2 w-full px-4 py-2 bg-green-500 text-white rounded"
+                            >
+                            Confirm Settings & Generate Link
+                            </button>
                         </div>
 
                         {/* Share URL */}
@@ -180,5 +193,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({isOpen, onClose, fileId}:
                     </div>
                 </div>
             </div>
+
         ))}
 
