@@ -23,5 +23,6 @@ A secure file-sharing application that enables users to upload and share files w
 - [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
 - AES-GCM Encryption
 
-## Diagram
-to be added
+## Authentication and File Upload Flow
+![{44F5A229-3581-41E1-B3B6-266D7F957E00}](https://github.com/user-attachments/assets/7bb418d7-ab6f-4709-96e2-88e9e4131103)
+
